@@ -1,0 +1,37 @@
+{
+  "name": "quick-ftp",
+  "id": "quick-ftp",
+  "version": "0.0.1",
+  "description": "Wrapper around pyftpdlib to have a fast, readily available FTP server for testing.",
+  "keywords": [
+    "ftp",
+    "unix",
+    "dos",
+    "python",
+    "server"
+  ],
+  "author": "Sergi Mansilla <sergi.mansilla@gmail.com> (http://sergimansilla.com)",
+  "homepage": "https://github.com/sergi/quick-ftp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergi/quick-ftp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sergi/quick-ftp/issues"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  },
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.6"
+  },
+  "scripts": {
+  },
+  "licenses": [
+    {
+      "type": "MIT"
+    }
+  ]
+}
