@@ -11,18 +11,18 @@ util.inherits(FtpServer,  EventEmitter);
 FtpServer.prototype.init = function(cfg) {
   var cmd = [__dirname + '/ftpd.py'];
 
-  cfg.userAgent && cmd.push(user);
-  cfg.pass && cmd.push(pass);
-  cfg.port && cmd.push(port);
-  this.server = spawn('python', cmd);
+  cfg.user && cmd.push(cfg.user);
+  cfg.pass && cmd.push(cfg.pass);
+  cfg.port && cmd.push(cfg.port);
+  var server = this.server = spawn('python', cmd);
 
   var self = this;
   server.stdout.on('data', function(data) {
-    self.emit('data', data)
+    self.emit('stdout', data)
   });
 
   server.stderr.on('data', function(data) {
-    self.emit('data', data)
+    self.emit('stderr', data)
   });
 
   server.on('close', function(code, signal) {
@@ -45,3 +45,5 @@ FtpServer.prototype.init = function(cfg) {
 FtpServer.prototype.stop = function(cfg) {
   this.server.kill();
 };
+
+module.exports = FtpServer;
