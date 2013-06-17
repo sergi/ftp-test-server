@@ -1,6 +1,6 @@
 {
-  "name": "quick-ftp",
-  "id": "quick-ftp",
+  "name": "ftp-test-server",
+  "id": "ftp-test-server",
   "version": "0.0.1",
   "description": "Wrapper around pyftpdlib to have a fast, readily available FTP server for testing.",
   "keywords": [

@@ -1,12 +1,12 @@
-h2. quick-ftp
+## ftp-test-server
 
-quick-ftp is a very simple  wrapper for pyftpdlib that provides the user with a ready-to-use
+ftp-test-server is a very simple  wrapper for pyftpdlib that provides the user with a ready-to-use
 FTP server for testing and experiments.
 
-h2. Usage
+## Usage
 
 ```javascript
-var Server = require('quick-ftp');
+var Server = require('ftp-test-server');
 
 var myFtp = new Server();
 
