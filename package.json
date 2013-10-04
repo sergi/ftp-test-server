@@ -11,13 +11,13 @@
     "server"
   ],
   "author": "Sergi Mansilla <sergi.mansilla@gmail.com> (http://sergimansilla.com)",
-  "homepage": "https://github.com/sergi/quick-ftp",
+  "homepage": "https://github.com/sergi/ftp-test-server",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sergi/quick-ftp.git"
+    "url": "https://github.com/sergi/ftp-test-server.git"
   },
   "bugs": {
-    "url": "https://github.com/sergi/quick-ftp/issues"
+    "url": "https://github.com/sergi/ftp-test-server/issues"
   },
   "dependencies": {
   },
