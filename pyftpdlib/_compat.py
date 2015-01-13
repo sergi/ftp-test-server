@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# $Id: _compat.py 1117 2012-11-02 19:45:33Z g.rodola $
 
 """
 Compatibility module similar to six which helps maintaining
@@ -90,3 +89,21 @@ if not hasattr(property, "setter"):
                     break
             cls_ns[name] = property(self.fget, value, self.fdel, self.__doc__)
             return cls_ns[name]
+
+
+# py 2.5 functools.wraps
+try:
+    from functools import wraps
+except ImportError:
+    def wraps(original):
+        def inner(fn):
+            for attribute in ['__module__', '__name__', '__doc__']:
+                setattr(fn, attribute, getattr(original, attribute))
+            for attribute in ['__dict__']:
+                if hasattr(fn, attribute):
+                    getattr(fn, attribute).update(getattr(original, attribute))
+                else:
+                    setattr(fn, attribute,
+                            getattr(original, attribute).copy())
+            return fn
+        return inner

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: __main__.py 1206 2013-04-06 15:26:00Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -57,6 +56,7 @@ class CustomizedOptionFormatter(optparse.IndentedHelpFormatter):
             result.append(help_text)
         return ''.join(result)
 
+
 def main():
     """Start a stand alone anonymous FTP server."""
     usage = "python -m pyftpdlib.ftpserver [options]"
@@ -66,7 +66,7 @@ def main():
                       help="specify the interface to run on (default all "
                            "interfaces)")
     parser.add_option('-p', '--port', type="int", default=2121, metavar="PORT",
-                      help="specify port number to run on (default 21)")
+                      help="specify port number to run on (default 2121)")
     parser.add_option('-w', '--write', action="store_true", default=False,
                       help="grants write access for the anonymous user "
                            "(default read-only)")
@@ -80,10 +80,17 @@ def main():
                            "connections (e.g. -r 8000-9000)")
     parser.add_option('-v', '--version', action='store_true',
                       help="print pyftpdlib version and exit")
+    parser.add_option('-V', '--verbose', action='store_true',
+                      help="activate a more verbose logging")
 
     options, args = parser.parse_args()
     if options.version:
         sys.exit("pyftpdlib %s" % __ver__)
+    if options.verbose:
+        import logging
+        import pyftpdlib.log
+        pyftpdlib.log.LEVEL = logging.DEBUG
+
     passive_ports = None
     if options.range:
         try:

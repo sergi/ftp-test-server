@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: servers.py 1219 2013-04-19 14:35:41Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -42,8 +41,8 @@ You might be interested in these in case your code contains blocking
 parts which cannot be adapted to the base async model or if the
 underlying filesystem is particularly slow, see:
 
-https://code.google.com/p/pyftpdlib/issues/detail?id=197
-https://code.google.com/p/pyftpdlib/issues/detail?id=212
+https://github.com/giampaolo/pyftpdlib/issues/197
+https://github.com/giampaolo/pyftpdlib/issues/212
 
 Two classes are provided:
 
@@ -77,6 +76,7 @@ from pyftpdlib.ioloop import Acceptor, IOLoop
 __all__ = ['FTPServer']
 _BSD = 'bsd' in sys.platform
 
+
 # ===================================================================
 # --- base class
 # ===================================================================
@@ -105,7 +105,7 @@ class FTPServer(Acceptor):
     max_cons = 512
     max_cons_per_ip = 0
 
-    def __init__(self, address_or_socket, handler, ioloop=None, backlog=5):
+    def __init__(self, address_or_socket, handler, ioloop=None, backlog=100):
         """Creates a socket listening on 'address' dispatching
         connections to a 'handler'.
 
@@ -130,7 +130,7 @@ class FTPServer(Acceptor):
         # to be raised here rather than later, when client connects
         if hasattr(handler, 'get_ssl_context'):
             handler.get_ssl_context()
-        if isinstance(address_or_socket, socket.socket):
+        if callable(getattr(address_or_socket, 'listen', None)):
             sock = address_or_socket
             sock.setblocking(0)
             self.set_socket(sock)
@@ -160,7 +160,7 @@ class FTPServer(Acceptor):
             return self._map_len() <= self.max_cons
 
     def _log_start(self):
-        if not logging.getLogger().handlers:
+        if not logging.getLogger('pyftpdlib').handlers:
             # If we get to this point it means the user hasn't
             # configured logger. We want to log by default so
             # we configure logging ourselves so that it will
@@ -199,7 +199,7 @@ class FTPServer(Acceptor):
            Also, logs server start and stop.
         """
         if handle_exit:
-            log = handle_exit and blocking == True
+            log = handle_exit and blocking
             if log:
                 self._log_start()
             try:
@@ -208,8 +208,9 @@ class FTPServer(Acceptor):
                 pass
             if blocking:
                 if log:
-                    logger.info(">>> shutting down FTP server (%s active fds) <<<",
-                                self._map_len())
+                    logger.info(
+                        ">>> shutting down FTP server (%s active fds) <<<",
+                        self._map_len())
                 self.close_all()
         else:
             self.ioloop.loop(timeout, blocking)
@@ -253,8 +254,8 @@ class FTPServer(Acceptor):
             # be fixed. We do not want to tear down the server though
             # (DoS). We just log the exception, hoping that someone
             # will eventually file a bug. References:
-            # - http://code.google.com/p/pyftpdlib/issues/detail?id=143
-            # - http://code.google.com/p/pyftpdlib/issues/detail?id=166
+            # - https://github.com/giampaolo/pyftpdlib/issues/143
+            # - https://github.com/giampaolo/pyftpdlib/issues/166
             # - https://groups.google.com/forum/#!topic/pyftpdlib/h7pPybzAx14
             logger.error(traceback.format_exc())
             if handler is not None:
@@ -328,8 +329,8 @@ class _SpawnerBase(FTPServer):
             poll_timeout = getattr(self, 'poll_timeout', None)
             soonest_timeout = poll_timeout
 
-            while (ioloop.socket_map or ioloop.sched._tasks) and not \
-              self._exit.is_set():
+            while (ioloop.socket_map or ioloop.sched._tasks) and \
+                    not self._exit.is_set():
                 try:
                     if ioloop.socket_map:
                         poll(timeout=soonest_timeout)
@@ -342,9 +343,10 @@ class _SpawnerBase(FTPServer):
                         # functions are supposed to be cancel()ed on close()
                         # but by using threads we can incur into
                         # synchronization issues such as this one.
-                        # https://code.google.com/p/pyftpdlib/issues/detail?id=245
+                        # https://github.com/giampaolo/pyftpdlib/issues/245
                         if not ioloop.socket_map:
-                            ioloop.sched.reheapify() # get rid of cancel()led calls
+                            # get rid of cancel()led calls
+                            ioloop.sched.reheapify()
                             soonest_timeout = sched_poll()
                             if soonest_timeout:
                                 time.sleep(min(soonest_timeout, 1))
@@ -374,14 +376,10 @@ class _SpawnerBase(FTPServer):
                         raise
                 else:
                     if poll_timeout:
-                        if soonest_timeout is None \
-                        or soonest_timeout > poll_timeout:
+                        if (soonest_timeout is None
+                                or soonest_timeout > poll_timeout):
                             soonest_timeout = poll_timeout
         finally:
-            try:
-                self._active_tasks.remove(self._current_task())
-            except ValueError:
-                pass
             ioloop.close()
 
     def handle_accepted(self, sock, addr):
@@ -395,8 +393,17 @@ class _SpawnerBase(FTPServer):
             t.name = repr(addr)
             t.start()
 
+            # it is a different process so free resources here
+            if hasattr(t, 'pid'):
+                handler.close()
+
             self._lock.acquire()
             try:
+                # clean finished tasks
+                for task in self._active_tasks[:]:
+                    if not task.is_alive():
+                        self._active_tasks.remove(task)
+                # add the new task
                 self._active_tasks.append(t)
             finally:
                 self._lock.release()
@@ -408,7 +415,7 @@ class _SpawnerBase(FTPServer):
     def serve_forever(self, timeout=None, blocking=True, handle_exit=True):
         self._exit.clear()
         if handle_exit:
-            log = handle_exit and blocking == True
+            log = handle_exit and blocking
             if log:
                 self._log_start()
             try:
@@ -417,8 +424,9 @@ class _SpawnerBase(FTPServer):
                 pass
             if blocking:
                 if log:
-                    logger.info(">>> shutting down FTP server (%s active " \
-                                "workers) <<<", self._map_len())
+                    logger.info(
+                        ">>> shutting down FTP server (%s active workers) <<<",
+                        self._map_len())
                 self.close_all()
         else:
             self.ioloop.loop(timeout, blocking)

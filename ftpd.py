@@ -34,7 +34,7 @@
 users', setting a limit for incoming connections.
 """
 
-import os, sys, inspect
+import os, sys, inspect, logging
 
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
@@ -63,6 +63,8 @@ def main():
 
     handler = FTPHandler
     handler.authorizer = authorizer
+
+    logging.basicConfig(level=logging.DEBUG)
 
     server = FTPServer(("127.0.0.1", port), handler)
     server.serve_forever()

@@ -1,7 +1,7 @@
 {
   "name": "ftp-test-server",
   "id": "ftp-test-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Wrapper around pyftpdlib to have a fast, readily available FTP server for testing.",
   "keywords": [
     "ftp",
@@ -25,7 +25,7 @@
   },
   "main": "index.js",
   "engines": {
-    "node": ">=0.6"
+    "node": ">=0.8"
   },
   "scripts": {
   },

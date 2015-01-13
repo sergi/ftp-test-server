@@ -6,7 +6,7 @@ function FtpServer() {
   EventEmitter.call(this);
 }
 
-util.inherits(FtpServer,  EventEmitter);
+util.inherits(FtpServer, EventEmitter);
 
 FtpServer.prototype.init = function(cfg) {
   var cmd = [__dirname + '/ftpd.py'];
@@ -18,11 +18,11 @@ FtpServer.prototype.init = function(cfg) {
 
   var self = this;
   server.stdout.on('data', function(data) {
-    self.emit('stdout', data)
+    self.emit('stdout', data);
   });
 
   server.stderr.on('data', function(data) {
-    self.emit('stderr', data)
+    self.emit('stderr', data);
   });
 
   server.on('close', function(code, signal) {
@@ -43,7 +43,7 @@ FtpServer.prototype.init = function(cfg) {
 };
 
 FtpServer.prototype.stop = function(cfg) {
-  this.server.kill();
+  this.server.kill('SIGKILL');
 };
 
 module.exports = FtpServer;

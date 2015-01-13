@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: ioloop.py 1217 2013-04-18 18:21:44Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -83,17 +82,17 @@ server = Server('localhost', 8021)
 IOLoop.instance().loop()
 """
 
-import asyncore
 import asynchat
+import asyncore
 import errno
-import select
-import os
-import sys
-import traceback
-import time
 import heapq
-import socket
 import logging
+import os
+import select
+import socket
+import sys
+import time
+import traceback
 try:
     import threading
 except ImportError:
@@ -148,8 +147,8 @@ class _Scheduler(object):
         # remove cancelled tasks and re-heapify the queue if the
         # number of cancelled tasks is more than the half of the
         # entire queue
-        if self._cancellations > 512 \
-          and self._cancellations > (len(self._tasks) >> 1):
+        if (self._cancellations > 512
+                and self._cancellations > (len(self._tasks) >> 1)):
             self.reheapify()
 
         try:
@@ -210,9 +209,9 @@ class _CallLater(object):
             sig = object.__repr__(self)
         else:
             sig = repr(self._target)
-        sig += ' args=%s, kwargs=%s, cancelled=%s, secs=%s' \
-                % (self._args or '[]',  self._kwargs or '{}', self.cancelled,
-                   self._delay)
+        sig += ' args=%s, kwargs=%s, cancelled=%s, secs=%s' % (
+            self._args or '[]', self._kwargs or '{}', self.cancelled,
+            self._delay)
         return '<%s>' % sig
 
     __str__ = __repr__
@@ -320,7 +319,7 @@ class _IOLoop(object):
         """
         if not _IOLoop._started_once:
             _IOLoop._started_once = True
-            if not logging.getLogger().handlers:
+            if not logging.getLogger('pyftpdlib').handlers:
                 # If we get to this point it means the user hasn't
                 # configured logging. We want to log by default so
                 # we configure logging ourselves so that it will
@@ -331,7 +330,6 @@ class _IOLoop(object):
             # localize variable access to minimize overhead
             poll = self.poll
             socket_map = self.socket_map
-            tasks = self.sched._tasks
             sched_poll = self.sched.poll
 
             if timeout is not None:
@@ -462,8 +460,9 @@ class Select(_IOLoop):
 # ===================================================================
 
 class _BasePollEpoll(_IOLoop):
-    """This is common to both poll/epoll implementations which
-    almost share the same interface.
+    """This is common to both poll() (UNIX), epoll() (Linux) and
+    /dev/poll (Solaris) implementations which share almost the same
+    interface.
     Not supposed to be used directly.
     """
 
@@ -540,6 +539,44 @@ if hasattr(select, 'poll'):
 
 
 # ===================================================================
+# --- /dev/poll - Solaris (introduced in python 3.3)
+# ===================================================================
+
+if hasattr(select, 'devpoll'):
+
+    class DevPoll(_BasePollEpoll):
+        """/dev/poll based poller (introduced in python 3.3)."""
+
+        READ = select.POLLIN
+        WRITE = select.POLLOUT
+        _ERROR = select.POLLERR | select.POLLHUP | select.POLLNVAL
+        _poller = select.devpoll
+
+        # introduced in python 3.4
+        if hasattr(select.devpoll, 'fileno'):
+            def fileno(self):
+                """Return devpoll() fd."""
+                return self._poller.fileno()
+
+        def modify(self, fd, events):
+            inst = self.socket_map[fd]
+            self.unregister(fd)
+            self.register(fd, inst, events)
+
+        def poll(self, timeout):
+            # /dev/poll timeout is expressed in milliseconds
+            if timeout is not None:
+                timeout = int(timeout * 1000)
+            _BasePollEpoll.poll(self, timeout)
+
+        # introduced in python 3.4
+        if hasattr(select.devpoll, 'close'):
+            def close(self):
+                _IOLoop.close(self)
+                self._poller.close()
+
+
+# ===================================================================
 # --- epoll() - Linux
 # ===================================================================
 
@@ -578,7 +615,7 @@ if hasattr(select, 'kqueue'):
 
         def fileno(self):
             """Return kqueue() fd."""
-            return self._poller.fileno()
+            return self._kqueue.fileno()
 
         def close(self):
             _IOLoop.close(self)
@@ -612,11 +649,11 @@ if hasattr(select, 'kqueue'):
             kevents = []
             if events & self.WRITE:
                 kevents.append(select.kevent(
-                        fd, filter=select.KQ_FILTER_WRITE, flags=flags))
+                    fd, filter=select.KQ_FILTER_WRITE, flags=flags))
             if events & self.READ or not kevents:
                 # always read when there is not a write
                 kevents.append(select.kevent(
-                        fd, filter=select.KQ_FILTER_READ, flags=flags))
+                    fd, filter=select.KQ_FILTER_READ, flags=flags))
             # even though control() takes a list, it seems to return
             # EINVAL on Mac OS X (10.6) when there is more than one
             # event in the list
@@ -624,12 +661,13 @@ if hasattr(select, 'kqueue'):
                 self._kqueue.control([kevent], 0)
 
         # localize variable access to minimize overhead
-        def poll(self, timeout,
-                       _len=len,
-                       _READ=select.KQ_FILTER_READ,
-                       _WRITE=select.KQ_FILTER_WRITE,
-                       _EOF=select.KQ_EV_EOF,
-                       _ERROR=select.KQ_EV_ERROR):
+        def poll(self,
+                 timeout,
+                 _len=len,
+                 _READ=select.KQ_FILTER_READ,
+                 _WRITE=select.KQ_FILTER_WRITE,
+                 _EOF=select.KQ_EV_EOF,
+                 _ERROR=select.KQ_EV_ERROR):
             try:
                 kevents = self._kqueue.control(None, _len(self.socket_map),
                                                timeout)
@@ -666,13 +704,15 @@ if hasattr(select, 'kqueue'):
 # --- choose the better poller for this platform
 # ===================================================================
 
-if hasattr(select, 'epoll'):     # epoll() - Linux only
+if hasattr(select, 'epoll'):      # epoll() - Linux
     IOLoop = Epoll
-elif hasattr(select, 'kqueue'):  # kqueue() - BSD / OSX
+elif hasattr(select, 'kqueue'):   # kqueue() - BSD / OSX
     IOLoop = Kqueue
-elif hasattr(select, 'poll'):    # poll() - POSIX
+elif hasattr(select, 'devpoll'):  # /dev/poll - Solaris
+    IOLoop = DevPoll
+elif hasattr(select, 'poll'):     # poll() - POSIX
     IOLoop = Poll
-else:                            # select() - POSIX and Windows
+else:                             # select() - POSIX and Windows
     IOLoop = Select
 
 
@@ -685,6 +725,8 @@ else:                            # select() - POSIX and Windows
 
 _DISCONNECTED = frozenset((errno.ECONNRESET, errno.ENOTCONN, errno.ESHUTDOWN,
                            errno.ECONNABORTED, errno.EPIPE, errno.EBADF))
+_RETRY = frozenset((errno.EAGAIN, errno.EWOULDBLOCK))
+
 
 class Acceptor(asyncore.dispatcher):
     """Same as base asyncore.dispatcher and supposed to be used to
@@ -799,7 +841,8 @@ class Connector(Acceptor):
                         # the remote client is using IPv4 and its address is
                         # represented as an IPv4-mapped IPv6 address which
                         # looks like this ::ffff:151.12.5.65, see:
-                        # http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_addresses
+                        # http://en.wikipedia.org/wiki/IPv6\
+                        #     IPv4-mapped_addresses
                         # http://tools.ietf.org/html/rfc3493.html#section-3.7
                         # We truncate the first bytes to make it look like a
                         # common IPv4 address.
@@ -845,15 +888,15 @@ class AsyncChat(asynchat.async_chat):
 
     # send() and recv() overridden as a fix around various bugs:
     # - http://bugs.python.org/issue1736101
-    # - http://code.google.com/p/pyftpdlib/issues/detail?id=104
-    # - http://code.google.com/p/pyftpdlib/issues/detail?id=109
+    # - https://github.com/giampaolo/pyftpdlib/issues/104
+    # - https://github.com/giampaolo/pyftpdlib/issues/109
 
     def send(self, data):
         try:
             return self.socket.send(data)
         except socket.error:
             why = sys.exc_info()[1]
-            if why.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+            if why.args[0] in _RETRY:
                 return 0
             elif why.args[0] in _DISCONNECTED:
                 self.handle_close()
@@ -864,13 +907,6 @@ class AsyncChat(asynchat.async_chat):
     def recv(self, buffer_size):
         try:
             data = self.socket.recv(buffer_size)
-            if not data:
-                # a closed connection is indicated by signaling
-                # a read condition, and having recv() return 0.
-                self.handle_close()
-                return b('')
-            else:
-                return data
         except socket.error:
             why = sys.exc_info()[1]
             if why.args[0] in _DISCONNECTED:
@@ -878,6 +914,14 @@ class AsyncChat(asynchat.async_chat):
                 return b('')
             else:
                 raise
+        else:
+            if not data:
+                # a closed connection is indicated by signaling
+                # a read condition, and having recv() return 0.
+                self.handle_close()
+                return b('')
+            else:
+                return data
 
     def initiate_send(self):
         asynchat.async_chat.initiate_send(self)

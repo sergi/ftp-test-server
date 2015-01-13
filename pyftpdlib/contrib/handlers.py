@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: handlers.py 1171 2013-02-19 10:13:09Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -35,6 +34,7 @@ _depwarn("pyftpdlib.contrib.handlers module is deprecated; "
          "use pyftpdlib.handlers instead")
 
 try:
-    from pyftpdlib.handlers import SSLConnection, TLS_FTPHandler, TLS_DTPHandler
+    from pyftpdlib.handlers import (SSLConnection, TLS_FTPHandler,  # NOQA
+                                    TLS_DTPHandler)
 except ImportError:
     pass

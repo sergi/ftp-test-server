@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-# $Id: filesystems.py 1171 2013-02-19 10:13:09Z g.rodola $
 
 #  pyftpdlib is released under the MIT license, reproduced below:
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -36,6 +35,6 @@ _depwarn("pyftpdlib.contrib.filesystem module is deprecated; "
          "use pyftpdlib.filesystems instead")
 
 try:
-    from pyftpdlib.filesystems import UnixFilesystem
+    from pyftpdlib.filesystems import UnixFilesystem  # NOQA
 except ImportError:
     pass

@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-# $Id: authorizers.py 1171 2013-02-19 10:13:09Z g.rodola $
 
 #  pyftpdlib is released under the MIT license, reproduced below:
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -36,11 +35,13 @@ _depwarn("pyftpdlib.contrib.authorizers module is deprecated; "
          "use pyftpdlib.authorizers instead")
 
 try:
-    from pyftpdlib.authorizers import BaseUnixAuthorizer, UnixAuthorizer
+    from pyftpdlib.authorizers import (BaseUnixAuthorizer,  # NOQA
+                                       UnixAuthorizer)
 except ImportError:
     pass
 
 try:
-    from pyftpdlib.authorizers import BaseWindowsAuthorizer, WindowsAuthorizer
+    from pyftpdlib.authorizers import (BaseWindowsAuthorizer,  # NOQA
+                                       WindowsAuthorizer)
 except ImportError:
     pass

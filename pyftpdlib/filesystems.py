@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: filesystems.py 1171 2013-02-19 10:13:09Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -49,8 +48,8 @@ from pyftpdlib._compat import PY3, u, unicode, property
 __all__ = ['FilesystemError', 'AbstractedFS']
 
 
-_months_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul',
-               8:'Aug', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dec'}
+_months_map = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun',
+               7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
 
 
 # ===================================================================
@@ -62,6 +61,7 @@ class FilesystemError(Exception):
     You can raise this from an AbstractedFS subclass in order to
     send a customized error string to the client.
     """
+
 
 # ===================================================================
 # --- base class
@@ -239,10 +239,11 @@ class AbstractedFS(object):
             def __init__(self, fd, name):
                 self.file = fd
                 self.name = name
+
             def __getattr__(self, attr):
                 return getattr(self.file, attr)
 
-        text = not 'b' in mode
+        text = 'b' not in mode
         # max number of tries to find out a unique file name
         tempfile.TMP_MAX = 50
         fd, name = tempfile.mkstemp(suffix, prefix, dir, text=text)
@@ -294,16 +295,16 @@ class AbstractedFS(object):
     def stat(self, path):
         """Perform a stat() system call on the given path."""
         # on python 2 we might also get bytes from os.lisdir()
-        #assert isinstance(path, unicode), path
+        # assert isinstance(path, unicode), path
         return os.stat(path)
 
-    def lstat(self, path):
-        """Like stat but does not follow symbolic links."""
-        # on python 2 we might also get bytes from os.lisdir()
-        #assert isinstance(path, unicode), path
-        return os.lstat(path)
-
-    if not hasattr(os, 'lstat'):
+    if hasattr(os, 'lstat'):
+        def lstat(self, path):
+            """Like stat but does not follow symbolic links."""
+            # on python 2 we might also get bytes from os.lisdir()
+            # assert isinstance(path, unicode), path
+            return os.lstat(path)
+    else:
         lstat = stat
 
     if hasattr(os, 'readlink'):
@@ -357,28 +358,33 @@ class AbstractedFS(object):
         assert isinstance(path, unicode), path
         return os.path.lexists(path)
 
-    def get_user_by_uid(self, uid):
-        """Return the username associated with user id.
-        If this can't be determined return raw uid instead.
-        On Windows just return "owner".
-        """
-        try:
-            return pwd.getpwuid(uid).pw_name
-        except KeyError:
-            return uid
+    if pwd is not None:
+        def get_user_by_uid(self, uid):
+            """Return the username associated with user id.
+            If this can't be determined return raw uid instead.
+            On Windows just return "owner".
+            """
+            try:
+                return pwd.getpwuid(uid).pw_name
+            except KeyError:
+                return uid
+    else:
+        def get_user_by_uid(self, uid):
+            return "owner"
 
-    def get_group_by_gid(self, gid):
-        """Return the groupname associated with group id.
-        If this can't be determined return raw gid instead.
-        On Windows just return "group".
-        """
-        try:
-            return grp.getgrgid(gid).gr_name
-        except KeyError:
-            return gid
-
-    if pwd is None: get_user_by_uid = lambda x, y: "owner"
-    if grp is None: get_group_by_gid = lambda x, y: "group"
+    if grp is not None:
+        def get_group_by_gid(self, gid):
+            """Return the groupname associated with group id.
+            If this can't be determined return raw gid instead.
+            On Windows just return "group".
+            """
+            try:
+                return grp.getgrgid(gid).gr_name
+            except KeyError:
+                return gid
+    else:
+        def get_group_by_gid(self, gid):
+            return "group"
 
     # --- Listing utilities
 
@@ -448,7 +454,7 @@ class AbstractedFS(object):
                     # http://bugs.python.org/issue683592
                     file = os.path.join(bytes(basedir), bytes(basename))
                     if not isinstance(basename, unicode):
-                        basename = unicode(basename, 'utf8')
+                        basename = unicode(basename, 'utf8', 'ignore')
             else:
                 file = os.path.join(basedir, basename)
             try:
@@ -468,7 +474,7 @@ class AbstractedFS(object):
             mtime = timefunc(st.st_mtime)
             # if modification time > 6 months shows "month year"
             # else "month hh:mm";  this matches proftpd format, see:
-            # http://code.google.com/p/pyftpdlib/issues/detail?id=187
+            # https://github.com/giampaolo/pyftpdlib/issues/187
             if (now - st.st_mtime) > SIX_MONTHS:
                 fmtstr = "%d  %Y"
             else:
@@ -496,8 +502,8 @@ class AbstractedFS(object):
                         raise
 
             # formatting is matched with proftpd ls output
-            line = "%s %3s %-8s %-8s %8s %s %s\r\n" % (perms, nlinks, uname, gname,
-                                                       size, mtimestr, basename)
+            line = "%s %3s %-8s %-8s %8s %s %s\r\n" % (
+                perms, nlinks, uname, gname, size, mtimestr, basename)
             yield line.encode('utf8', self.cmd_channel.unicode_errors)
 
     def format_mlsx(self, basedir, listing, perms, facts, ignore_err=True):
@@ -522,9 +528,9 @@ class AbstractedFS(object):
         This is how output could appear to the client issuing
         a MLSD request:
 
-        type=file;size=156;perm=r;modify=20071029155301;unique=801cd2; music.mp3
+        type=file;size=156;perm=r;modify=20071029155301;unique=8012; music.mp3
         type=dir;size=0;perm=el;modify=20071127230206;unique=801e33; ebooks
-        type=file;size=211;perm=r;modify=20071103093626;unique=801e32; module.py
+        type=file;size=211;perm=r;modify=20071103093626;unique=192; module.py
         """
         assert isinstance(basedir, unicode), basedir
         if listing:
@@ -561,7 +567,7 @@ class AbstractedFS(object):
                     # http://bugs.python.org/issue683592
                     file = os.path.join(bytes(basedir), bytes(basename))
                     if not isinstance(basename, unicode):
-                        basename = unicode(basename, 'utf8')
+                        basename = unicode(basename, 'utf8', 'ignore')
             else:
                 file = os.path.join(basedir, basename)
             # in order to properly implement 'unique' fact (RFC-3659,
@@ -629,7 +635,7 @@ class AbstractedFS(object):
                 retfacts['unique'] = "%xg%x" % (st.st_dev, st.st_ino)
 
             # facts can be in any order but we sort them by name
-            factstring = "".join(["%s=%s;" % (x, retfacts[x]) \
+            factstring = "".join(["%s=%s;" % (x, retfacts[x])
                                   for x in sorted(retfacts.keys())])
             line = "%s %s\r\n" % (factstring, basename)
             yield line.encode('utf8', self.cmd_channel.unicode_errors)

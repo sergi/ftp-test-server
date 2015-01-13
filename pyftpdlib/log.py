@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# $Id: log.py 1171 2013-02-19 10:13:09Z g.rodola $
 
 #  ======================================================================
-#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
 #
 #                         All Rights Reserved
 #
@@ -43,12 +42,13 @@ try:
     import curses
 except ImportError:
     curses = None
-    
+
 from pyftpdlib._compat import unicode
 
-# default logger
 
+# default logger
 logger = logging.getLogger('pyftpdlib')
+
 
 def _stderr_supports_color():
     color = False
@@ -89,14 +89,19 @@ class LogFormatter(logging.Formatter):
             # works with unicode strings.  The explicit calls to
             # unicode() below are harmless in python2 but will do the
             # right conversion in python 3.
-            fg_color = (curses.tigetstr("setaf") or curses.tigetstr("setf") or "")
+            fg_color = (curses.tigetstr("setaf") or curses.tigetstr("setf")
+                        or "")
             if (3, 0) < sys.version_info < (3, 2, 3):
                 fg_color = unicode(fg_color, "ascii")
             self._colors = {
-                logging.DEBUG: unicode(curses.tparm(fg_color, 4), "ascii"),   # blue
-                logging.INFO: unicode(curses.tparm(fg_color, 2),  "ascii"),   # green
-                logging.WARNING: unicode(curses.tparm(fg_color, 3), "ascii"), # yellow
-                logging.ERROR: unicode(curses.tparm(fg_color, 1), "ascii")    # red
+                # blues
+                logging.DEBUG: unicode(curses.tparm(fg_color, 4), "ascii"),
+                # green
+                logging.INFO: unicode(curses.tparm(fg_color, 2), "ascii"),
+                # yellow
+                logging.WARNING: unicode(curses.tparm(fg_color, 3), "ascii"),
+                # red
+                logging.ERROR: unicode(curses.tparm(fg_color, 1), "ascii")
             }
             self._normal = unicode(curses.tigetstr("sgr0"), "ascii")
 
@@ -143,9 +148,10 @@ class LogFormatter(logging.Formatter):
             formatted = formatted.rstrip() + "\n" + record.exc_text
         return formatted.replace("\n", "\n    ")
 
+
 def _config_logging():
     channel = logging.StreamHandler()
     channel.setFormatter(LogFormatter())
-    logger = logging.getLogger()
+    logger = logging.getLogger('pyftpdlib')
     logger.setLevel(LEVEL)
     logger.addHandler(channel)
